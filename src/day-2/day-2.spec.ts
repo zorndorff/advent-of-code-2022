@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import test from 'node:test';
-import { group, solve } from './day-1';
+import { group, solve } from './day-2';
 
 test('should group the elves from the example problem', () => {
   const input = [
