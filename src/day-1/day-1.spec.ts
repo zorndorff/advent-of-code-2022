@@ -52,5 +52,5 @@ test('should solve the example problem', () => {
   const solved = solve(input);
 
   //The Elf is carrying the most food.
-  assert.strictEqual(solved.total, 24000);
+  assert.strictEqual(solved[0].total, 24000);
 });
