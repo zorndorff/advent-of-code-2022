@@ -2,9 +2,10 @@
 
 My solutions for 2022 [Advent of code](https://adventofcode.com/)
 
-Uses Node v18 and npm. 
+
+Uses Node v18, Npm and Go-Task https://taskfile.dev
 - `nvm use v18`
-- `npm i` 
+- `npm i`
 
 ## Solutions
 Solution can be executed via:
@@ -14,3 +15,8 @@ You'll need to add your own input at `src/day-{day number}/input.txt`
 ## Testing
 
 Run tests `npm run test` 
+
+Test as you go:
+`task --watch`
+This will re-run the tests on every save.
+
