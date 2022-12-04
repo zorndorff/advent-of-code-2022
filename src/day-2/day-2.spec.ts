@@ -11,6 +11,6 @@ test('should solve the first example problem', () => {
 
   const solved = solve(input);
 
-  assert.equal(solved.playerScores, [0, 15]);
+  assert.deepEqual(solved.playerScores, [15, 15]);
 
 });
