@@ -4,91 +4,153 @@
  **/
 
 import assert from "node:assert";
+import { debug, group } from "node:console";
 
 type Crate = string;
 
-type Stack = Set<Crate>;
+type Stack = Crate[];
 
 export class Warehouse {
-  public stacks: Stack[];
+  public stacks: Map<string, Stack>;
   
   constructor(){
-    this.stacks = [];
+    this.stacks = new Map();
   }
 
-  get overlap(){
-    return this._overlap;
-  }
+  static fromCratesInput(input: string[]){
+    const warehouse = new Warehouse();
+    const crateInput = input;
+    try {
+      let stacks: { label: string; pos: number; }[] = [];
+      crateInput.forEach((line, inputIndex) => {
+        if (inputIndex == 0){
+          for (const [i, char] of line.split('').entries()) {
+            if(char.trim() !== ''){
+              stacks.push({
+                label: char,
+                pos: i
+              });
+            }
+          }
+        } else {
 
-  add (toAdd: Assignment, overlapType: 'any' | 'full' = 'full') {
-    let hasOverlap = this._overlap;
+          for (let crateIndex = 0; crateIndex < stacks.length; crateIndex++) {
+            const stackName = stacks[crateIndex].label;
+            assert(stackName, `Stack ${crateIndex} not found!`);
 
-    for (const assignment of this.assignments) {
-      if(overlapType == 'full'){
-        if(assigmentsOverlap(assignment, toAdd) || assigmentsOverlap(toAdd, assignment)){
-          hasOverlap = true;
-          break;
+            const val = line.substring(stacks[crateIndex].pos - 1, stacks[crateIndex].pos + 2);
+            if(val.trim() !== ''){
+              warehouse.addToStack([val], stackName);
+            } 
+          }  
         }
+      });
+    } catch (ex) {
+      debugger;
+      console.error(ex);
+      throw ex;
+    }
+    return warehouse;
+  }
+
+  getOrCreateStack (stackNum: string){
+    if(this.stacks.has(stackNum)){
+      const existingStack = this.stacks.get(stackNum);
+      assert(existingStack, 'no stack found');
+      return existingStack;
+    }
+
+    const stack: Stack = [];
+
+    this.stacks.set(stackNum, stack);
+
+    return stack;
+  }
+
+  addToStack (crate: Crate[], stackNum: string) {
+    const stack = this.getOrCreateStack(stackNum);
+
+    this.stacks.set(stackNum, stack.concat(crate));
+  }
+
+  move(instruction: string){
+    console.log(instruction);
+    const [action, quantity, fromLabel, from, toLabel, to] = instruction.split(' ');
+    assert(quantity, `No quantity in instruction ${instruction}`);
+    assert(from, `No from in instruction ${instruction}`);
+    for (let index = 1; index <= parseInt(quantity); index++) {
+      debugger;
+      const sourceStack = this.stacks.get(from);
+      assert(sourceStack, `Cant find sourceStack ${from}`);
+      const source = sourceStack.pop();
+
+      assert(source, `No source?`);
+      if(!source){
+        debugger;
+        return;
       }
-      if(overlapType == 'any'){
-        if(assigmentsHaveAnyOverlap(assignment, toAdd) || assigmentsHaveAnyOverlap(toAdd, assignment)){
-          hasOverlap = true;
-          break;
-        }
-      }
+
+      assert(source, `No source in stack ${from}`);
+      debugger;
+      this.addToStack([source], to);
     }
+  }
 
-    this.assignments.push(toAdd);
-
-    this._overlap = hasOverlap;
+  moveMulti(instruction: string){
+    console.log(instruction);
+    const [action, quantity, fromLabel, from, toLabel, to] = instruction.split(' ');
+    assert(quantity, `No quantity in instruction ${instruction}`);
+    assert(from, `No from in instruction ${instruction}`);
+    const sourceStack = this.stacks.get(from);
+    assert(sourceStack, `Cant find sourceStack ${from}`);
+    const source = sourceStack.splice(sourceStack.length - parseInt(quantity), parseInt(quantity));
+    this.addToStack(source, to);
   }
 }
 
+export function groupStateInput(input: string[]): { crateInput: string[], moveInput: string[], gotDivider: boolean} | undefined {
 
-export function assigmentsHaveAnyOverlap(primary: Assignment, secondary: Assignment){
-  for (let index = primary.range.start; index <= primary.range.end; index++) {
-    if(index <= secondary.range.end && index >= secondary.range.start){
-      return true;
+  const grouped = input.reverse().reduce((acc: {crateInput: string[], moveInput: string[], gotDivider: boolean} | undefined, value) => {
+    assert(acc);
+
+    if (value == ''){
+      acc.gotDivider = true;
+      return acc;
     }
-  }
-  return false;
-}
 
-
-export function assigmentsOverlap(primary: Assignment, secondary: Assignment){
-  return (primary.range.end >= secondary.range.end && primary.range.start <= secondary.range.start);
-}
-
-export function assignmentFromRangeInput(input: string){
-  const [rangeStart, rangeEnd] = input.split('-');
-  return {
-    range: {
-      start: parseInt(rangeStart),
-      end: parseInt(rangeEnd),
-    }
-  }
-}
-
-export function toAssignments(input: string, overlapType: 'full' | 'any' = 'full') {
-  const [assignmentInput1, assignmentInput2] = input.split(',');
-  const assigments = new Assignments();
-  assigments.add(assignmentFromRangeInput(assignmentInput1), overlapType);
-  assigments.add(assignmentFromRangeInput(assignmentInput2), overlapType);
-
-  return assigments;
-}
-
-export function solve(input: string[], overlapMode: 'any' | 'full' = 'full') {
-  const parsedAssignments = input.map((inputString: string) => {
-    return toAssignments(inputString, overlapMode);
-  })
-
-  const totalOverlap = parsedAssignments.reduce((acc, val) => {
-    if(val.overlap){
-      acc += 1;
+    if (!acc.gotDivider){
+      acc.moveInput.push(value);
+    } else {
+      acc.crateInput.push(value.trimEnd());
     }
     return acc;
-  }, 0);
 
-  return totalOverlap;
+  }, { crateInput:[], moveInput: [], gotDivider: false});
+
+  return {
+    crateInput: grouped?.crateInput ?? [],
+    moveInput: grouped?.moveInput.reverse() ?? [],
+    gotDivider: grouped?.gotDivider ?? false,
+  };
+}
+
+export function solve(input: string[], mode: 'single' | 'multi' = 'single') {
+
+  const parsedInput = groupStateInput(input);
+
+  assert(parsedInput?.crateInput, 'NO CRATE STATE PARSED');
+  const warehouse = Warehouse.fromCratesInput(parsedInput?.crateInput);
+  console.log(warehouse);
+  parsedInput.moveInput.forEach((moveInstruction) => {
+    if(mode == 'multi'){
+      warehouse.moveMulti(moveInstruction);
+    }
+
+    if(mode == 'single'){
+      warehouse.move(moveInstruction);
+    }
+    console.log(warehouse);
+  });
+
+  return warehouse;
 }

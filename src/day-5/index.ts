@@ -9,12 +9,8 @@ function main() {
     .split('\n');
   
   const output = solve(input);
-  console.log(output);
-
-  console.log(`Game results : ${output}`);
-
-  const output2 = solve(input, 'any');
-  console.log(`Game results : ${output2}`); 
+  
+  console.log(`Game results : ${Array.from(output.stacks.entries()).map((stack) => stack[stack.length - 1])}`);
 }
 
 main();
